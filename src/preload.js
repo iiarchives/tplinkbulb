@@ -1,10 +1,14 @@
-// Copyright (c) 2024 iiPython
+// Copyright (c) 2024-2025 iiPython
 
 // Modules
 const { contextBridge, ipcRenderer } = require('electron/renderer')
 
 // Handle bridging
 contextBridge.exposeInMainWorld("_api", {
-    sendLightPayload: (payload) => ipcRenderer.send("send-light-payload", payload),
-    getStatus: () => ipcRenderer.invoke("get-status")
+    setStatus: (payload) => ipcRenderer.send("set-status", payload),
+    getStatus: (host) => ipcRenderer.invoke("get-status", host),
+    getLightBulbs: (callback) => {
+        ipcRenderer.send("get-light-bulbs");
+        ipcRenderer.on("bulbs-found", (_e, bulbs) => callback(bulbs));
+    }
 });

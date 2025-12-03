@@ -1,26 +1,75 @@
-// Copyright (c) 2024 iiPython
+// Copyright (c) 2024-2025 iiPython
 
-// Modules
-import ReinventedColorWheel from "https://cdn.jsdelivr.net/npm/reinvented-color-wheel@0.4.0/es/reinvented-color-wheel.bundle.min.js";
+// Handle bulb selection
+async function loadLightBulb(host) {
+    localStorage.setItem("lastBulb", host);
 
-// Fetch current status
-(async () => {
-    const status = await window._api.getStatus();
+    // Grab status information
+    const status = await window._api.getStatus(host);
 
-    // Setup event listening and color wheel
-    new ReinventedColorWheel({
-        appendTo: document.getElementById("wheel"),
-        hsv: status.hsv,
-        wheelDiameter: 200,
-        wheelThickness: 20,
-        handleDiameter: 16,
-        wheelReflectsSaturation: true,
-        onChange: (c) => {
-            window._api.sendLightPayload({ type: "hsv", hsv: c.hsv });
+    // Process HTML
+    document.querySelector("main").innerHTML = `
+        <section>
+            <div id = "color-picker"></div>
+            <div class = "brightness">
+                <span>Brightness</span>
+                <input type = "range" min = "1" max = "100" value = "100" />
+                <span>${status.light_state.brightness}%</span>
+            </div>
+        </section>
+        <section style = "margin-top: 10px;">
+            <h3>${status.alias}</h3>
+            <hr>
+            <span>
+                Model: ${status.model} <br>
+                IP: ${host} <br>
+                HSV: <span id = "hsv-text">${status.light_state.hue}°, ${status.light_state.saturation}, ${status.light_state.brightness}%</span> <br>
+                Turned on: <input type = "checkbox" ${status.light_state.on_off ? 'checked' : ''} />
+            </span>
+        </section>
+    `;
+    document.querySelector("main").style.alignItems = "start";
+    document.querySelector("main").style.flexDirection = "row";
+    document.querySelector("main").style.width = "600px";
+    document.querySelector("main").style.height = "310px";
+
+    // Handle extra controls
+    const brightness = document.querySelector(`input[type = "range"]`);
+    brightness.value = status.light_state.brightness;
+
+    const toggle = document.querySelector(`input[type = "checkbox"]`);
+    toggle.checked = Boolean(status.light_state.on_off);
+
+    // Setup color picking
+    const joe = colorjoe.rgb("color-picker", `hsv(${status.light_state.hue}, ${status.light_state.saturation}%, ${status.light_state.brightness}%)`);
+    const sendStatus = async (c) => {
+        const h = Math.round(c.hue() * 360), s = Math.round(c.saturation() * 100);
+        await window._api.setStatus({
+            h,
+            s,
+            b: +brightness.value,
+            on: toggle.checked,
+            host
+        });
+        document.querySelector(".brightness > span:last-child").innerText = `${brightness.value}%`;
+        document.querySelector("#hsv-text").innerText = `${h}°, ${s}, ${brightness.value}%`;
+    }
+
+    joe.on("change", async (c) => await sendStatus(c));
+    brightness.addEventListener("change", (e) => joe.update());
+    toggle.addEventListener("change", (e) => joe.update());
+}
+
+// Load bulbs into UI
+const lastBulb = localStorage.getItem("lastBulb");
+if (!lastBulb){
+    await window._api.getLightBulbs((bulbs) => {
+        document.querySelector("main > div").innerHTML = "";
+        for (const bulb of bulbs) {
+            const button = document.createElement("button");
+            button.innerText = bulb.name;
+            button.addEventListener("click", () => loadLightBulb(bulb.host));
+            document.querySelector("main > div").appendChild(button);
         }
     });
-    document.getElementById("switch").checked = status.on;
-    document.getElementById("switch").addEventListener("change", (e) => {
-        window._api.sendLightPayload({ type: "led", on: e.currentTarget.checked });
-    });
-})();
+} else loadLightBulb(lastBulb);

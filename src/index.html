@@ -4,71 +4,99 @@
         <meta charset = "utf-8">
 
         <!-- CSS -->
-        <link rel = "stylesheet" href = "https://cdn.jsdelivr.net/npm/reinvented-color-wheel@0.4.0/css/reinvented-color-wheel.min.css">
+        <link rel = "stylesheet" href = "./css/colorjoe.css">
         <style>
-            main {
-                background-color: #121212;
+            * {
+                color: #fff;
+                margin: 0px;
+                font-family: monospace;
+            }
+            body, html {
+                height: 100%;
+            }
+            body {
                 display: flex;
+                align-items: center;
                 justify-content: center;
+                background-color: #000;
+            }
+            main {
+                height: 300px;
+                width: 300px;
+                border-radius: 8px;
+                padding: 10px;
+                background-color: #121212;
+
+                display: flex;
                 align-items: center;
                 flex-direction: column;
-                left: 0px;
-                height: 100%;
-                top: 0px;
-                width: 100%;
-                position: absolute;
+                gap: 10px;
+
+                div {
+                    width: 100%;
+                }
+
+                hr {
+                    width: 100%;
+                    border: none;
+                    border-bottom: 1px solid #575757 !important;
+                }
+
+                button {
+                    background-color: #000;
+                    padding: 5px;
+                    border-radius: 8px;
+                    border: none;
+                    cursor: pointer;
+                    width: 100%;
+                    margin-bottom: 10px;
+                }
             }
-            input[type = checkbox] {
-                height: 0;
-                width: 0;
-                visibility: hidden;
+            #color-picker {
+                width: 300px;
             }
-            label {
-                cursor: pointer;
-                text-indent: -9999px;
-                width: 100px;
-                height: 50px;
-                background: grey;
-                display: block;
-                border-radius: 100px;
-                position: relative;
+            .spin {
+                width: 24px;
+                height: 24px;
+                border: 2px solid #575757;
+                border-bottom-color: transparent;
+                border-radius: 50%;
+                display: inline-block;
+                box-sizing: border-box;
+                animation: rotation 1s linear infinite;
             }
-            label:after {
-                content: '';
-                position: absolute;
-                top: 5px;
-                left: 5px;
-                width: 40px;
-                height: 40px;
-                background: #fff;
-                border-radius: 90px;
-                transition: 0.3s;
+            div.brightness {
+                display: flex;
+                width: 300px;
+                gap: 10px;
+
+                input {
+                    flex: 1;
+                }
             }
-            input:checked + label {
-                background: #bada55;
+            section {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
             }
-            input:checked + label:after {
-                left: calc(100% - 5px);
-                transform: translateX(-100%);
-            }
-            label:active:after {
-                width: 75px;
-            }
-            #wheel {
-                margin-top: 45px;
-            }
+            @keyframes rotation {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            } 
         </style>
 
         <title>TP-Link Bulb</title>
     </head>
     <body>
         <main>
-            <input type = "checkbox" id = "switch" />
-            <label for = "switch">Toggle</label>
-            <div id = "wheel"></div>
+            <h3>Select a Light Bulb</h3>
+            <hr>
+            <div></div>
+            <span class = "spin"></span>
         </main>
 
         <!-- JS -->
+        <script src = "./js/colorjoe.min.js"></script>
         <script src = "./renderer.js" type = "module"></script>
     </body>
 </html>

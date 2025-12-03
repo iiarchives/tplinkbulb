@@ -13,44 +13,57 @@ const source = path.join(__dirname, "src");
 // Handle electron creation
 const createWindow = async () => {
 
-    // Scan and save our lightbulb
-    const light = await (new Promise(resolve => {
-        const scan = TPLSmartDevice.scan()
-            .on("light", (light) => { scan.stop(); resolve(light); });
-    }));
-
     // Setup and configure window
     const mainWindow = new BrowserWindow({
-        width: 300,
+        width: 700,
         height: 400,
         webPreferences: {
             preload: path.join(source, "preload.js")
         }
     });
+
     mainWindow.setMenu(null);
     mainWindow.setResizable(false);
     mainWindow.setMaximizable(false);
 
     // Handle IPC
-    ipcMain.on("send-light-payload", (event, payload) => {
-        switch (payload.type) {
-            case "hsv":
-                light.power(true, 0, {
-                    color_temp: 0,
-                    hue: Math.round(payload.hsv[0]),
-                    saturation: Math.round(payload.hsv[1]),
-                    brightness: Math.round(payload.hsv[2])
-                });
-            case "led":
-                light.power(payload.on);
-        }
+    let lastScan = null, foundBulbs = [];
+    const sendBulbList = () => mainWindow.webContents.send("bulbs-found", foundBulbs.map(bulb => ({ host: bulb.host, name: bulb.name })));
+
+    ipcMain.on("set-status", async (event, payload) => {
+        const { h, s, b, on, host } = payload;
+        await foundBulbs.find(bulb => bulb.ip === host).power(on, 0, {
+            color_temp: 0,
+            hue: h,
+            saturation: s,
+            brightness: b
+        });
     });
-    ipcMain.handle("get-status", async () => {
-        const status = await light.info();
-        return {
-            hsv: [ status.light_state.hue, status.light_state.saturation, status.light_state.brightness ],
-            on: status.light_state.on_off
-        };
+
+    ipcMain.handle("get-status", async (event, host) => {
+        let bulb = foundBulbs.find(bulb => bulb.ip === host);
+        if (!bulb) {
+            bulb = new TPLSmartDevice(host);
+            foundBulbs.push(bulb);
+        }
+        
+        return await bulb.info();
+    });
+
+    // Handle bulb scanning and selection
+    ipcMain.on("get-light-bulbs", async () => {
+        if (lastScan) lastScan.stop();
+
+        console.log("[Scan] Scanning...");
+
+        lastScan = TPLSmartDevice.scan();
+        lastScan.on("light", (bulb) => {
+            console.log("[Bulb Found]", bulb.host)
+            if (!foundBulbs.find(b => b.host === bulb.host)) foundBulbs.push(bulb);
+            sendBulbList();
+        });
+
+        sendBulbList();
     });
 
     // Load html
